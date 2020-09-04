@@ -21,7 +21,7 @@ __pip_search() {
 
     while read name version dash desc; do
         ary+=("$name:$version $desc")
-    done < <(pip search $1)
+    done < <(pip search $1 2>/dev/null)
 
     _describe -t remote-pip 'remote pip package' ary
 }
