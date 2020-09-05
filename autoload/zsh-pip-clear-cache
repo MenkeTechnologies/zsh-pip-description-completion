@@ -1,0 +1,5 @@
+zsh-pip-clear-cache() {
+  rm $ZSH_PIP_CACHE_FILE
+  unset piplist
+}
+zsh-pip-clear-cache "$@"

@@ -1,0 +1,4 @@
+zsh-pip-clean-packages() {
+    sed -n '/<a href/ s/.*>\([^<]\{1,\}\).*/\1/p'
+}
+zsh-pip-clean-packages "$@"

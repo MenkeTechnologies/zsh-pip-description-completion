@@ -1,0 +1,38 @@
+# A test function that validates the regex against known forms of the simple
+# index. If you modify the regex to make it work for you, you should add a test
+# case in here and make sure that your changes don't break things for someone
+# else.
+zsh-pip-test-clean-packages() {
+    local expected
+    local actual
+    expected="0x10c-asm
+1009558_nester"
+
+    actual=$(echo -n "<html><head><title>Simple Index</title><meta name=\"api-version\" value=\"2\" /></head><body>
+<a href='0x10c-asm'>0x10c-asm</a><br/>
+<a href='1009558_nester'>1009558_nester</a><br/>
+</body></html>" | zsh-pip-clean-packages)
+
+    if [[ $actual != $expected ]] ; then
+        echo -e "python's simple index is broken:\n$actual\n  !=\n$expected"
+    else
+        echo "python's simple index is fine"
+    fi
+
+    actual=$(echo -n '<html>
+  <head>
+    <title>Simple Package Index</title>
+  </head>
+  <body>
+    <a href="0x10c-asm">0x10c-asm</a><br/>
+    <a href="1009558_nester">1009558_nester</a><br/>
+</body></html>' | zsh-pip-clean-packages)
+
+    if [[ $actual != $expected ]] ; then
+        echo -e "the djangopypi2 index is broken:\n$actual\n  !=\n$expected"
+    else
+        echo "the djangopypi2 index is fine"
+    fi
+}
+
+zsh-pip-test-clean-packages "$@"
