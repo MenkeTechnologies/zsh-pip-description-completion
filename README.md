@@ -2,6 +2,14 @@
 
 This plugin has all functionality of OMZ pip completion but it also allows `pip install <tab>` to complete remote pip packages from output of `pip search`.
 
+## Install for Zinit
+> `~/.zshrc`
+```sh
+source "$HOME/.zinit/bin/zinit.zsh"
+zinit ice lucid nocompile
+zinit load MenkeTechnologies/zsh-pip-description-completion
+```
+
 ## Install for Oh My Zsh
 
 ```sh
