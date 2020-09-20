@@ -17,13 +17,19 @@ __pip_installed() {
 }
 
 __pip_search() {
-    local ary
+    local pip_cache_file pip_ary
+    local -a tmp_ary
+    pip_cache_file="pip_${PREFIX}_cache"
 
-    while read name version dash desc; do
-        ary+=("$name:$version $desc")
-    done < <(pip search $1 2>/dev/null)
+    if _cache_invalid $pip_cache_file || ! _retrieve_cache $pip_cache_file; then
+        while read name version dash desc; do
+            tmp_ary+=("${(q)name}:${(q)version} $desc")
+        done < <(pip search $PREFIX 2>/dev/null)
 
-    _describe -t remote-pip 'remote pip package' ary
+        _store_cache $pip_cache_file tmp_ary
+    fi
+
+    _describe -t remote-pip 'remote pip package' tmp_ary
 }
 
 local -a _1st_arguments
@@ -78,7 +84,7 @@ case "$words[1]" in
       '(--index)--index[base URL of Python Package Index]' \
       '*: :->packages' &&  return 0
       if [[ "$state" == packages ]]; then
-        __pip_search $PREFIX
+        __pip_search
       fi
         ;;
   freeze)
