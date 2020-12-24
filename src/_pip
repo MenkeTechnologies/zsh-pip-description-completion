@@ -26,7 +26,9 @@ __pip_search() {
             tmp_ary+=("${(q)name}:${(q)version} $desc")
         done < <(pip search $PREFIX 2>/dev/null)
 
-        _store_cache $pip_cache_file tmp_ary
+        if (( $#tmp_ary )); then
+            _store_cache $pip_cache_file tmp_ary
+        fi
     fi
 
     _describe -t remote-pip 'remote pip package' tmp_ary
