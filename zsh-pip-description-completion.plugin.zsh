@@ -23,3 +23,5 @@ fpath=("${0:h}/src" $fpath)
 # util fns
 fpath+=("${0:h}/autoload")
 autoload -Uz "${0:h}/autoload/"*(.:t)
+
+alias pin='python3 -m pip install'
