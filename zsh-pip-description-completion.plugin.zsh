@@ -12,7 +12,9 @@
 ZSH_PIP_CACHE_FILE=~/.pip/zsh-cache
 ZSH_PIP_INDEXES=(https://pypi.org/simple/)
 
-alias pip="noglob pip" # allows square brackets for pip command invocation
+alias pip="'builtin' 'noglob' 'command' 'pip'" # allows square brackets for pip command invocation
+
+alias pin="'builtin' 'noglob' 'command' 'python3' -m pip install"
 
 0="${${0:#$ZSH_ARGZERO}:-${(%):-%N}}"
 0="${${(M)0:#/*}:-$PWD/$0}"
@@ -23,5 +25,3 @@ fpath=("${0:h}/src" $fpath)
 # util fns
 fpath+=("${0:h}/autoload")
 autoload -Uz "${0:h}/autoload/"*(.:t)
-
-alias pin='python3 -m pip install'
