@@ -1,5 +1,7 @@
 # zsh-pip-description-completion
 
+[![CI](https://github.com/MenkeTechnologies/zsh-pip-description-completion/actions/workflows/ci.yml/badge.svg)](https://github.com/MenkeTechnologies/zsh-pip-description-completion/actions/workflows/ci.yml)
+
 This plugin has all functionality of OMZ pip completion but it also allows `pip install <tab>` to complete remote pip packages from output of `pip search`.
 The descriptions in the zsh menu completions are the version number and decription.
 
