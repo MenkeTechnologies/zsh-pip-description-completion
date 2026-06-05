@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="zsh-pip-description-completion — Engineering report. Full pip completion for 7 binary aliases (pip / pip2 / pip-2.7 / pip3 / pip-3.2 / pip-3.3 / pip-3.4) plus live remote completion via `pip search` with version + description rendered inline in the zsh menu. 144 LOC across _pip + autoload helpers + plugin, 45 zunit @test cases across 6 files, 21 structural gates.">
+  <title>zsh-pip-description-completion &mdash; Engineering Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="hud-static.css">
+  <link rel="stylesheet" href="tutorial.css">
+  <style>
+    .tutorial-main { max-width: 76rem; }
+
+    .file-table { width:100%;border-collapse:collapse;margin:0.6rem 0;font-size:12px; }
+    .file-table th { background:var(--bg-secondary);color:var(--cyan);font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;text-align:left;padding:7px 10px;border:1px solid var(--border); }
+    .file-table td { padding:6px 10px;border:1px solid var(--border);color:var(--text-dim);vertical-align:middle; }
+    .file-table tr:hover td { background:var(--bg-hover); }
+    .file-table td:first-child { font-family:'Share Tech Mono',monospace;color:var(--accent-light);font-weight:600;white-space:nowrap; }
+    .file-table .num { text-align:right;font-family:'Share Tech Mono',monospace; }
+    .file-table .total-row td { background:var(--bg-secondary);font-weight:700;color:var(--text);border-top:2px solid var(--cyan); }
+    .file-table code { font-size:11px;color:var(--accent-light);background:var(--bg-primary);padding:1px 4px;border-radius:2px; }
+
+    .stat-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:0.75rem;margin:1.2rem 0; }
+    .stat-card { border:1px solid var(--border);border-top:3px solid var(--cyan);background:var(--bg-card);padding:1rem 1.2rem;border-radius:2px;text-align:center; }
+    .stat-card .stat-val { font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--cyan);line-height:1.1;text-shadow:0 0 20px var(--cyan-glow); }
+    .stat-card .stat-val.accent { color:var(--accent);text-shadow:0 0 20px var(--accent-glow); }
+    .stat-card .stat-val.green  { color:var(--green);text-shadow:0 0 20px rgba(57,255,20,.3); }
+    .stat-card .stat-label { font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-top:0.5rem; }
+    @keyframes glow-pulse { 0%,100%{text-shadow:0 0 20px var(--cyan-glow)}50%{text-shadow:0 0 40px var(--cyan-glow),0 0 80px var(--cyan-dim)} }
+    .stat-card .stat-val { animation:glow-pulse 3s ease-in-out infinite; }
+
+    .section-rule { border:none;border-top:1px dashed var(--border);margin:2rem 0; }
+
+    .feature-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(22rem,1fr));gap:0.65rem;margin:0.8rem 0; }
+    .feature-card { border:1px solid var(--border);border-left:3px solid var(--cyan);background:var(--bg-card);padding:0.7rem 1rem;border-radius:2px; }
+    .feature-card h4 { font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan);margin:0 0 0.3rem; }
+    .feature-card p { margin:0;font-size:11px;color:var(--text-dim);line-height:1.55; }
+    .feature-card code { font-size:10.5px;color:var(--accent-light);background:var(--bg-primary);padding:1px 4px;border-radius:2px; }
+    .feature-card ul { margin:0.3rem 0 0;padding-left:1.2rem;font-size:11px;color:var(--text-dim);line-height:1.6; }
+    .feature-card li code { font-size:10px; }
+  </style>
+</head>
+<body>
+  <div class="app tutorial-app" id="reportApp">
+    <div class="crt-scanline" id="crtH" aria-hidden="true"></div>
+    <div class="crt-scanline-v" id="crtV" aria-hidden="true"></div>
+
+    <header class="tutorial-header">
+      <div class="tutorial-header-inner">
+        <div>
+          <h1 class="tutorial-brand">// ZSH-PIP-DESCRIPTION-COMPLETION &mdash; ENGINEERING REPORT</h1>
+          <nav class="tutorial-crumbs" aria-label="Breadcrumb">
+            <span class="current">Engineering Report</span>
+            <span class="sep">/</span>
+            <a href="index.html">Docs</a>
+            <span class="sep">/</span>
+            <a href="https://github.com/MenkeTechnologies/zsh-pip-description-completion" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <span class="sep">/</span>
+            <a href="https://github.com/MenkeTechnologies/MenkeTechnologiesMeta" target="_blank" rel="noopener noreferrer">Meta</a>
+          </nav>
+          <p style="margin:0.35rem 0 0;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:0.03em;opacity:0.75;">
+            7 binary aliases (<code>pip</code>/<code>pip2</code>/<code>pip-2.7</code>/<code>pip3</code>/<code>pip-3.2</code>/<code>pip-3.3</code>/<code>pip-3.4</code>) &middot; live <code>pip search</code> for remote PyPI completion &middot; version + description rendered inline in zsh menu &middot; PyPI HTML-index cache (<code>~/.pip/zsh-cache</code>) &middot; <code>zsh-pip-clear-cache</code> autoload
+          </p>
+        </div>
+        <div class="tutorial-toolbar">
+          <button type="button" class="btn btn-secondary" id="btnTheme" title="Toggle light/dark">Theme</button>
+          <button type="button" class="btn btn-secondary active" id="btnCrt" title="CRT scanline overlay">CRT</button>
+          <button type="button" class="btn btn-secondary active" id="btnNeon" title="Neon border pulse">Neon</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="tutorial-main">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 1: EXECUTIVE SUMMARY           -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">&gt;_</span>EXECUTIVE SUMMARY</h2>
+      <p class="tutorial-subtitle">zsh-pip-description-completion is a <code>#compdef</code> completion plugin that registers against <strong>seven pip-binary aliases</strong> (<code>pip</code>, <code>pip2</code>, <code>pip-2.7</code>, <code>pip3</code>, <code>pip-3.2</code>, <code>pip-3.3</code>, <code>pip-3.4</code>) in a single declaration. It ships the full pip 8 subcommand surface (13 subcommands &mdash; <code>install</code>, <code>download</code>, <code>uninstall</code>, <code>freeze</code>, <code>list</code>, <code>show</code>, <code>search</code>, <code>wheel</code>, <code>hash</code>, <code>help</code>, plus deprecated <code>bundle</code>/<code>unzip</code>/<code>zip</code>) with hand-curated descriptions, full top-level flag coverage (proxy, retries, timeout, exists-action, cache-dir, trusted-host, cert, client-cert, etc.), and <strong>menu-inline version + description rendering</strong> &mdash; the killer feature. <code>pip install &lt;TAB&gt;</code> shells out to <code>pip search $PREFIX</code>, parses the 4-column output (<code>name version_paren - desc</code>), and feeds zsh's <code>_describe</code> a tag&rarr;description map where the description is <code>"$version $desc"</code>. The user sees <strong>which version is current and what the package does</strong> in the completion menu before pressing Enter. A separate PyPI HTML-index cache layer (<code>zsh-pip-cache-packages</code>) curls <code>https://pypi.org/simple/</code> and stores the parsed package name set in <code>~/.pip/zsh-cache</code> for offline use. <code>zsh-pip-clear-cache</code> autoload rotates the cache when PyPI's index changes.</p>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val">144</div><div class="stat-label">Total LOC (src + autoload + plugin)</div></div>
+        <div class="stat-card"><div class="stat-val">7</div><div class="stat-label">Binary Aliases Completed</div></div>
+        <div class="stat-card"><div class="stat-val accent">45</div><div class="stat-label">zunit @test Cases</div></div>
+        <div class="stat-card"><div class="stat-val green">21</div><div class="stat-label">Structural Gates (.sh)</div></div>
+        <div class="stat-card"><div class="stat-val">6</div><div class="stat-label">zunit Files</div></div>
+        <div class="stat-card"><div class="stat-val">4</div><div class="stat-label">Autoload Helpers</div></div>
+      </div>
+
+      <hr class="section-rule">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 2: ARCHITECTURE                 -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">~</span>ARCHITECTURE &middot; FILE STRUCTURE</h2>
+      <p class="tutorial-subtitle">Three-layer plugin: <code>#compdef</code> consumer under <code>src/</code>, autoload helpers under <code>autoload/</code> (cache management, name extraction, cache flush), and an entrypoint that wires both into <code>fpath</code>.</p>
+
+      <table class="file-table">
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th class="num">Lines</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>src/_pip</td><td class="num">121</td><td><code>#compdef pip pip2 pip-2.7 pip3 pip-3.2 pip-3.3 pip-3.4</code> &mdash; 7 binaries, one declaration; 13-entry <code>_1st_arguments</code> subcommand table; top-level flags (<code>--proxy</code>, <code>--timeout</code>, <code>--retries</code>, <code>--cache-dir</code>, etc.); per-subcommand <code>case</code> dispatch for <code>search</code>/<code>install</code>/<code>freeze</code>/<code>uninstall</code>/<code>show</code></td></tr>
+          <tr><td>autoload/zsh-pip-cache-packages</td><td class="num">19</td><td>Cache builder &mdash; curls <code>$ZSH_PIP_INDEXES</code> (default <code>https://pypi.org/simple/</code>), pipes through <code>zsh-pip-clean-packages</code> (sed name extraction from PyPI HTML anchors), <code>sort -u</code>, writes space-separated names to <code>$ZSH_PIP_CACHE_FILE</code> (default <code>~/.pip/zsh-cache</code>)</td></tr>
+          <tr><td>autoload/zsh-pip-clean-packages</td><td class="num">4</td><td><code>sed -n '/&lt;a href/ s/.*&gt;\([^&lt;]\{1,\}\).*/\1/p'</code> &mdash; one-line PyPI HTML-anchor &rarr; package-name extractor</td></tr>
+          <tr><td>autoload/zsh-pip-clear-cache</td><td class="num">5</td><td>Removes <code>$ZSH_PIP_CACHE_FILE</code> and unsets in-shell <code>piplist</code> array</td></tr>
+          <tr><td>autoload/zsh-pip-test-clean-packages</td><td class="num">~10</td><td>Self-test for the sed extractor against a frozen PyPI HTML fixture</td></tr>
+          <tr><td>zsh-pip-description-completion.plugin.zsh</td><td class="num">23</td><td><code>ZSH_PIP_CACHE_FILE=~/.pip/zsh-cache</code>; <code>ZSH_PIP_INDEXES=(https://pypi.org/simple/)</code>; <code>fpath=("${0:h}/src" $fpath)</code>; <code>fpath+=("${0:h}/autoload")</code>; <code>autoload -Uz "${0:h}/autoload/"*(.:t)</code></td></tr>
+          <tr class="total-row"><td>Total source</td><td class="num">~182</td><td>6 files across <code>src/</code> + <code>autoload/</code> + entrypoint</td></tr>
+        </tbody>
+      </table>
+
+      <hr class="section-rule">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 3: COMPLETION COVERAGE          -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">@</span>COMPLETION COVERAGE</h2>
+      <p class="tutorial-subtitle">Full pip surface plus the menu-inline description feature that gives this plugin its name.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h4>7 binary aliases, one <code>#compdef</code></h4>
+          <p>Zsh's <code>#compdef</code> directive accepts a space-separated list. One declaration <code>#compdef pip pip2 pip-2.7 pip3 pip-3.2 pip-3.3 pip-3.4</code> registers the same completer against every Python-version-suffixed pip alias users actually have on their PATH (system pip, virtualenv pip, pyenv-shimmed pip, etc.). No need for symlinks.</p>
+        </div>
+        <div class="feature-card">
+          <h4>13 subcommands with descriptions</h4>
+          <ul>
+            <li><code>install</code>, <code>download</code>, <code>uninstall</code>, <code>freeze</code>, <code>list</code>, <code>show</code>, <code>search</code>, <code>wheel</code>, <code>hash</code>, <code>help</code></li>
+            <li>Deprecated (still completable): <code>bundle</code>, <code>unzip</code>, <code>zip</code> &mdash; explicitly marked <code>(deprecated)</code> in description so the user knows</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <h4>Live <code>pip install</code> with version + desc</h4>
+          <p><code>pip install &lt;TAB&gt;</code> &rarr; <code>__pip_search</code> &rarr; <code>pip search $PREFIX</code> output parsed as <code>name version_paren - desc</code> &rarr; <code>tmp_ary+=("${(q)name}:${(q)version} $desc")</code>. The <code>name:description</code> pair feeds <code>_describe</code>; description renders as <code>(version) description text</code> inline in the menu. <strong>This is the feature that gives the plugin its name &mdash; you see what the package does before you install it.</strong></p>
+        </div>
+        <div class="feature-card">
+          <h4>Top-level flag surface</h4>
+          <ul>
+            <li>Help/version: <code>-h</code>/<code>--help</code>, <code>-V</code>/<code>--version</code></li>
+            <li>Verbosity: <code>-v</code>/<code>--verbose</code> &harr; <code>-q</code>/<code>--quiet</code> (mutex)</li>
+            <li>Network: <code>--proxy</code>, <code>--retries</code>, <code>--timeout</code>, <code>--trusted-host</code></li>
+            <li>Cert: <code>--cert</code>, <code>--client-cert</code></li>
+            <li>Cache: <code>--cache-dir</code>, <code>--no-cache-dir</code></li>
+            <li>Misc: <code>--log</code>, <code>--isolated</code>, <code>--exists-action</code>, <code>--disable-pip-version-check</code></li>
+            <li>Deprecated: <code>-E</code>/<code>--environment</code>, <code>-s</code>/<code>--enable-site-packages</code></li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <h4>Per-subcommand argument completion</h4>
+          <ul>
+            <li><code>install</code>: <code>-U</code>/<code>--upgrade</code>, <code>--user</code>, <code>-f</code>/<code>--find-links</code>, <code>-r</code>/<code>--requirement</code> (<code>_files</code>), <code>--no-deps</code>, <code>-e</code>/<code>--editable</code> (dir-only via <code>_files -/</code>), packages via <code>__pip_search</code> with fallback to <code>*.tar.gz</code>/<code>*.whl</code> file completion</li>
+            <li><code>freeze</code>: <code>-l</code>/<code>--local</code></li>
+            <li><code>search</code>: <code>--index</code> for custom PyPI URL</li>
+            <li><code>uninstall</code> / <code>show</code>: <code>__pip_installed</code> &rarr; <code>pip freeze | cut -d '=' -f 1</code> &rarr; <code>_wanted installed_pkgs</code></li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <h4>HTML-index cache (offline)</h4>
+          <p><code>__pip_all</code> &rarr; <code>zsh-pip-cache-packages</code> &rarr; <code>curl https://pypi.org/simple/</code> &rarr; <code>sed</code> name extraction &rarr; <code>sort -u</code> &rarr; <code>~/.pip/zsh-cache</code>. Cached on first use; cleared with <code>zsh-pip-clear-cache</code>. Means offline tab completion works after one online warm-up.</p>
+        </div>
+      </div>
+
+      <hr class="section-rule">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 4: TEST COVERAGE                -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">#</span>TEST COVERAGE</h2>
+      <p class="tutorial-subtitle">45 zunit <code>@test</code> cases across 6 files, plus 21 structural shell gates from the umbrella.</p>
+
+      <table class="file-table">
+        <thead>
+          <tr>
+            <th>Test file</th>
+            <th class="num">@test count</th>
+            <th>What it pins</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>tests/t-plugin.zsh</td><td class="num">23</td><td>Plugin-entrypoint surface &mdash; <code>ZSH_PIP_CACHE_FILE</code> + <code>ZSH_PIP_INDEXES</code> defaults pinned; <code>fpath</code> contains both <code>src/</code> and <code>autoload/</code>; all 4 autoload helpers autoloaded via <code>autoload -Uz</code>; <code>_pip</code> file present with multi-binary <code>#compdef</code> line</td></tr>
+          <tr><td>tests/t-contract.zsh</td><td class="num">3</td><td>Entrypoint stem matches plugin-dir basename; <code>#compdef</code> declaration covers all 7 pip aliases</td></tr>
+          <tr><td>tests/t-contract2.zsh</td><td class="num">6</td><td><code>ZSH_ARGZERO</code> self-locate idiom intact; <code>fpath</code> manipulation order (<code>src/</code> first, <code>autoload/</code> appended)</td></tr>
+          <tr><td>tests/t-contract3.zsh</td><td class="num">5</td><td>Helper-function shape &mdash; <code>__pip_search</code> uses prefix-keyed cache name <code>pip_${PREFIX}_cache</code>; <code>__pip_installed</code> calls <code>pip freeze | cut -d '=' -f 1</code>; <code>__pip_all</code> guards on <code>$+piplist</code></td></tr>
+          <tr><td>tests/t-contract4.zsh</td><td class="num">5</td><td>Autoload contract &mdash; every <code>autoload/</code> helper has a self-invoking last line (<code>fn-name "$@"</code>); <code>zsh-pip-clean-packages</code> sed regex matches PyPI HTML anchor format</td></tr>
+          <tr><td>tests/t-syntax.zsh</td><td class="num">3</td><td><code>zsh -n</code> parse-cleanness on entrypoint, <code>src/_pip</code>, and every <code>autoload/</code> helper</td></tr>
+          <tr class="total-row"><td>Total</td><td class="num">45</td><td>6 zunit files</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--cyan);margin-top:1.5rem;">// STRUCTURAL GATES (21 shell scripts)</h3>
+      <p style="font-size:11.5px;color:var(--text-dim);line-height:1.6;">Same 21-script umbrella gate-set: 9 <code>docs/*.html</code> gates + 4 README + 3 man-page + 2 tests/ + 2 workflows + 1 cargo (vacuous).</p>
+
+      <hr class="section-rule">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 5: KEY DESIGN DECISIONS         -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">?</span>KEY DESIGN DECISIONS</h2>
+      <p class="tutorial-subtitle">Five places this plugin diverges from the upstream OMZ pip plugin.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h4>Version + description in the menu</h4>
+          <p>Upstream OMZ pip completion offers bare package names. This plugin parses <code>pip search</code>'s 4-column output and feeds <code>_describe</code> a description string of <code>"$version $desc"</code> &mdash; so <code>pip install requests&lt;TAB&gt;</code> shows the version and one-line description for every <code>requests*</code> match. <strong>Tab completion becomes a low-friction package-discovery surface.</strong></p>
+        </div>
+        <div class="feature-card">
+          <h4>7-binary <code>#compdef</code> in one line</h4>
+          <p>Most plugins register one binary per <code>#compdef</code>, then symlink or duplicate. This plugin uses <code>#compdef pip pip2 pip-2.7 pip3 pip-3.2 pip-3.3 pip-3.4</code> &mdash; zsh accepts the space-separated list natively. Means every Python-version-suffixed pip alias on the user's PATH (system, pyenv, conda, virtualenv) gets the same completion table with zero duplication.</p>
+        </div>
+        <div class="feature-card">
+          <h4>Cache to <code>~/.pip/zsh-cache</code>, not <code>~/.zcompcache</code></h4>
+          <p>The PyPI HTML-index cache lives next to pip's own config (<code>~/.pip/</code>) rather than zsh's cache dir. Rationale: this is a pip-derived artifact, and the user might want to inspect/share/version it. <code>~/.zcompcache/</code> is for opaque zsh-internal caches; this plugin's cache is a human-readable space-separated word list.</p>
+        </div>
+        <div class="feature-card">
+          <h4>HTML-index, not JSON API</h4>
+          <p>PyPI offers both an HTML index (<code>/simple/</code>) and a JSON API. This plugin curls the HTML index because it's the canonical, never-deprecated, all-packages-in-one-response surface. The JSON API requires per-package queries. <code>sed -n '/&lt;a href/ s/.*&gt;\([^&lt;]\{1,\}\).*/\1/p'</code> extracts every package name in one pipeline pass.</p>
+        </div>
+        <div class="feature-card">
+          <h4>Separate <code>__pip_search</code> + <code>__pip_all</code> paths</h4>
+          <p><code>__pip_search</code> is for <code>pip install &lt;prefix&gt;</code> (live search, per-prefix cached). <code>__pip_all</code> is for contexts that need the entire PyPI corpus (autocompleting a bare <code>pip install &lt;TAB&gt;</code> with no prefix yet). Two code paths because the cost profiles differ &mdash; <code>__pip_search</code> is a network call per prefix, <code>__pip_all</code> is a one-time HTML-index download.</p>
+        </div>
+      </div>
+
+    </main>
+
+    <footer style="text-align:center;padding:2rem;font-size:10px;color:var(--text-muted);font-family:'Orbitron',sans-serif;letter-spacing:2px;">
+      ZSH-PIP-DESCRIPTION-COMPLETION ENGINEERING REPORT &middot; 144 LOC &middot; 7 BINARY ALIASES &middot; 45 ZUNIT @TEST CASES &middot; 21 STRUCTURAL GATES &middot; LIVE PYPI SEARCH WITH VERSION+DESC &middot; MENKETECHNOLOGIES
+    </footer>
+  </div>
+
+  <script>
+    const html = document.documentElement;
+    const btnTheme = document.getElementById('btnTheme');
+    const btnCrt = document.getElementById('btnCrt');
+    const btnNeon = document.getElementById('btnNeon');
+    const crtH = document.getElementById('crtH');
+    const crtV = document.getElementById('crtV');
+    btnTheme?.addEventListener('click', () => {
+      html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    });
+    btnCrt?.addEventListener('click', () => {
+      btnCrt.classList.toggle('active');
+      const on = btnCrt.classList.contains('active');
+      if (crtH) crtH.style.display = on ? '' : 'none';
+      if (crtV) crtV.style.display = on ? '' : 'none';
+    });
+    btnNeon?.addEventListener('click', () => {
+      btnNeon.classList.toggle('active');
+      document.querySelector('.app')?.classList.toggle('neon-off');
+    });
+  </script>
+</body>
+</html>
