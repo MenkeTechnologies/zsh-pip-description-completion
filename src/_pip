@@ -69,7 +69,7 @@ _arguments \
   '(--cert)--cert[path to alternate CA bundle]' \
   '(--client-cert)--client-cert[path to SSL client certificate]' \
   '(--cache-dir)--cache-dir[store the cache data in specified directory]' \
-  '(--no-cache-dir)--no-cache-dir[disable de cache]' \
+  '(--no-cache-dir)--no-cache-dir[disable the cache]' \
   '(--disable-pip-version-check)--disable-pip-version-check[do not check periodically for new pip version downloads]' \
   '(-E --environment)'{-E,--environment}'[virtualenv environment to run pip in (deprecated)]' \
   '(-s --enable-site-packages)'{-s,--enable-site-packages}'[include site-packages in virtualenv (deprecated)]' \
@@ -98,7 +98,7 @@ case "$words[1]" in
       '(--user)--user[install packages to user home]' \
       '(-f --find-links)'{-f,--find-links}'[URL for finding packages]' \
       '(-r --requirement)'{-r,--requirement}'[Requirements file for packages to install]:File:_files' \
-      '(--no-deps --no-dependencies)'{--no-deps,--no-dependencies}'[iIgnore package dependencies]' \
+      '(--no-deps --no-dependencies)'{--no-deps,--no-dependencies}'[Ignore package dependencies]' \
       '(--no-install)--no-install[only download packages]' \
       '(--no-download)--no-download[only install downloaded packages]' \
       '(--install-option)--install-option[extra arguments to be supplied to the setup.py]' \

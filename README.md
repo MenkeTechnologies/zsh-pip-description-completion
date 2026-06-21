@@ -17,7 +17,7 @@
 > *"`pip install <TAB>` with version + description."*
 
 This plugin has all functionality of OMZ pip completion but it also allows `pip install <tab>` to complete remote pip packages from output of `pip search`.
-The descriptions in the zsh menu completions are the version number and decription.
+The descriptions in the zsh menu completions are the version number and description.
 
 ### [`strykelang`](https://github.com/MenkeTechnologies/strykelang) &middot; [`zshrs`](https://github.com/MenkeTechnologies/zshrs) · [`MenkeTechnologiesMeta`](https://github.com/MenkeTechnologies/MenkeTechnologiesMeta) · [`zsh-cargo-completion`](https://github.com/MenkeTechnologies/zsh-cargo-completion) · [`zsh-gem-completion`](https://github.com/MenkeTechnologies/zsh-gem-completion) · [`zsh-more-completions`](https://github.com/MenkeTechnologies/zsh-more-completions) · [`zpwr`](https://github.com/MenkeTechnologies/zpwr)
 
