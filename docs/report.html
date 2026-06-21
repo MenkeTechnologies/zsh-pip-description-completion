@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <meta name="description" content="zsh-pip-description-completion — Engineering report. Full pip completion for 7 binary aliases (pip / pip2 / pip-2.7 / pip3 / pip-3.2 / pip-3.3 / pip-3.4) plus live remote completion via `pip search` with version + description rendered inline in the zsh menu. 144 LOC across _pip + autoload helpers + plugin, 45 zunit @test cases across 6 files, 21 structural gates.">
+  <meta name="description" content="zsh-pip-description-completion — Engineering report. Full pip completion for 7 binary aliases (pip / pip2 / pip-2.7 / pip3 / pip-3.2 / pip-3.3 / pip-3.4) plus live remote completion via `pip search` with version + description rendered inline in the zsh menu. 212 LOC across _pip + 4 autoload helpers + plugin entrypoint, 45 zunit @test cases across 6 files, 21 structural gates.">
   <title>zsh-pip-description-completion &mdash; Engineering Report</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -82,7 +82,7 @@
       <p class="tutorial-subtitle">zsh-pip-description-completion is a <code>#compdef</code> completion plugin that registers against <strong>seven pip-binary aliases</strong> (<code>pip</code>, <code>pip2</code>, <code>pip-2.7</code>, <code>pip3</code>, <code>pip-3.2</code>, <code>pip-3.3</code>, <code>pip-3.4</code>) in a single declaration. It ships the full pip 8 subcommand surface (13 subcommands &mdash; <code>install</code>, <code>download</code>, <code>uninstall</code>, <code>freeze</code>, <code>list</code>, <code>show</code>, <code>search</code>, <code>wheel</code>, <code>hash</code>, <code>help</code>, plus deprecated <code>bundle</code>/<code>unzip</code>/<code>zip</code>) with hand-curated descriptions, full top-level flag coverage (proxy, retries, timeout, exists-action, cache-dir, trusted-host, cert, client-cert, etc.), and <strong>menu-inline version + description rendering</strong> &mdash; the killer feature. <code>pip install &lt;TAB&gt;</code> shells out to <code>pip search $PREFIX</code>, parses the 4-column output (<code>name version_paren - desc</code>), and feeds zsh's <code>_describe</code> a tag&rarr;description map where the description is <code>"$version $desc"</code>. The user sees <strong>which version is current and what the package does</strong> in the completion menu before pressing Enter. A separate PyPI HTML-index cache layer (<code>zsh-pip-cache-packages</code>) curls <code>https://pypi.org/simple/</code> and stores the parsed package name set in <code>~/.pip/zsh-cache</code> for offline use. <code>zsh-pip-clear-cache</code> autoload rotates the cache when PyPI's index changes.</p>
 
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-val">144</div><div class="stat-label">Total LOC (src + autoload + plugin)</div></div>
+        <div class="stat-card"><div class="stat-val">212</div><div class="stat-label">Total LOC (src + autoload + plugin)</div></div>
         <div class="stat-card"><div class="stat-val">7</div><div class="stat-label">Binary Aliases Completed</div></div>
         <div class="stat-card"><div class="stat-val accent">45</div><div class="stat-label">zunit @test Cases</div></div>
         <div class="stat-card"><div class="stat-val green">21</div><div class="stat-label">Structural Gates (.sh)</div></div>
@@ -111,9 +111,9 @@
           <tr><td>autoload/zsh-pip-cache-packages</td><td class="num">19</td><td>Cache builder &mdash; curls <code>$ZSH_PIP_INDEXES</code> (default <code>https://pypi.org/simple/</code>), pipes through <code>zsh-pip-clean-packages</code> (sed name extraction from PyPI HTML anchors), <code>sort -u</code>, writes space-separated names to <code>$ZSH_PIP_CACHE_FILE</code> (default <code>~/.pip/zsh-cache</code>)</td></tr>
           <tr><td>autoload/zsh-pip-clean-packages</td><td class="num">4</td><td><code>sed -n '/&lt;a href/ s/.*&gt;\([^&lt;]\{1,\}\).*/\1/p'</code> &mdash; one-line PyPI HTML-anchor &rarr; package-name extractor</td></tr>
           <tr><td>autoload/zsh-pip-clear-cache</td><td class="num">5</td><td>Removes <code>$ZSH_PIP_CACHE_FILE</code> and unsets in-shell <code>piplist</code> array</td></tr>
-          <tr><td>autoload/zsh-pip-test-clean-packages</td><td class="num">~10</td><td>Self-test for the sed extractor against a frozen PyPI HTML fixture</td></tr>
+          <tr><td>autoload/zsh-pip-test-clean-packages</td><td class="num">38</td><td>Self-test for the sed extractor against two frozen PyPI HTML fixtures (simple index + djangopypi2 form); reports whether each form still parses</td></tr>
           <tr><td>zsh-pip-description-completion.plugin.zsh</td><td class="num">23</td><td><code>ZSH_PIP_CACHE_FILE=~/.pip/zsh-cache</code>; <code>ZSH_PIP_INDEXES=(https://pypi.org/simple/)</code>; <code>fpath=("${0:h}/src" $fpath)</code>; <code>fpath+=("${0:h}/autoload")</code>; <code>autoload -Uz "${0:h}/autoload/"*(.:t)</code></td></tr>
-          <tr class="total-row"><td>Total source</td><td class="num">~182</td><td>6 files across <code>src/</code> + <code>autoload/</code> + entrypoint</td></tr>
+          <tr class="total-row"><td>Total source</td><td class="num">212</td><td>6 files across <code>src/</code> + <code>autoload/</code> + entrypoint</td></tr>
         </tbody>
       </table>
 
@@ -229,10 +229,72 @@
         </div>
       </div>
 
+      <hr class="section-rule">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 6: DATA FLOW                    -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">&gt;</span>DATA FLOW &middot; WHAT HAPPENS ON &lt;TAB&gt;</h2>
+      <p class="tutorial-subtitle">Two distinct paths fire depending on the context: the live per-prefix search path, and the one-time HTML-index cache path.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h4>Live search path (<code>__pip_search</code>)</h4>
+          <ul>
+            <li>Triggered when completing a package argument to <code>pip install</code> or <code>pip search</code>.</li>
+            <li>Builds a prefix-keyed cache name <code>pip_${PREFIX}_cache</code> and tries <code>_retrieve_cache</code> first.</li>
+            <li>On miss: runs <code>pip search $PREFIX</code>, reads each line as <code>name version dash desc</code>.</li>
+            <li>Quotes name + version with <code>${(q)...}</code> and builds entries <code>name:version desc</code>, then <code>_store_cache</code>.</li>
+            <li>Feeds the array to <code>_describe -t remote-pip 'remote pip package'</code> &mdash; the menu shows the version + description.</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <h4>HTML-index cache path (<code>__pip_all</code>)</h4>
+          <ul>
+            <li><code>__pip_all</code> guards on <code>$+piplist</code>; if unset, calls <code>zsh-pip-cache-packages</code>.</li>
+            <li><code>zsh-pip-cache-packages</code>: if <code>$ZSH_PIP_CACHE_FILE</code> is absent, <code>curl -L</code> each <code>$ZSH_PIP_INDEXES</code> URL into a temp file.</li>
+            <li>Pipes the HTML through <code>zsh-pip-clean-packages</code> (sed anchor extraction), then <code>sort | uniq | tr '\n' ' '</code> into the cache file, and removes the temp file.</li>
+            <li>Loads <code>piplist=($(cat $ZSH_PIP_CACHE_FILE))</code> into memory for the session.</li>
+            <li><code>zsh-pip-clear-cache</code> removes the file and unsets <code>piplist</code> to force a rebuild.</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <h4>Installed-package path (<code>__pip_installed</code>)</h4>
+          <p>For <code>pip uninstall</code> and <code>pip show</code>, the completer runs <code>pip freeze | cut -d '=' -f 1</code> to get the locally installed package names and offers them via <code>_wanted installed_pkgs ... compadd -a installed_pkgs</code>. No network access on this path.</p>
+        </div>
+        <div class="feature-card">
+          <h4>Fallback on no remote match</h4>
+          <p>For <code>pip install</code>, when <code>__pip_search $PREFIX</code> produces nothing, the case branch falls back to <code>_files -g "*.(tar.gz|whl)"</code> so you can still complete a local sdist or wheel archive path.</p>
+        </div>
+      </div>
+
+      <hr class="section-rule">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 7: CONFIGURATION                -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">$</span>CONFIGURATION &middot; ENVIRONMENT</h2>
+      <p class="tutorial-subtitle">Two variables, both set in the plugin entrypoint and overridable from <code>~/.zshrc</code>.</p>
+
+      <table class="file-table">
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Default</th>
+            <th>Effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>ZSH_PIP_INDEXES</td><td><code>(https://pypi.org/simple/)</code></td><td>Array of package-index URLs the cache builder downloads. Override to use private or mirror indexes. A bogus URL is silently skipped &mdash; no error is printed.</td></tr>
+          <tr><td>ZSH_PIP_CACHE_FILE</td><td><code>~/.pip/zsh-cache</code></td><td>Path to the cached space-separated package-name list. Parent directory is created on first cache build via <code>mkdir -p ${ZSH_PIP_CACHE_FILE:h}</code>.</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:11.5px;color:var(--text-dim);line-height:1.6;">To override, set the variable <em>before</em> the plugin loads, or re-set it and run <code>zsh-pip-clear-cache</code> to discard the old cache. The live <code>__pip_search</code> path is independent of <code>ZSH_PIP_INDEXES</code> &mdash; it always uses <code>pip search</code>, so a custom index there is configured through pip's own <code>--index</code> / pip config.</p>
+
     </main>
 
     <footer style="text-align:center;padding:2rem;font-size:10px;color:var(--text-muted);font-family:'Orbitron',sans-serif;letter-spacing:2px;">
-      ZSH-PIP-DESCRIPTION-COMPLETION ENGINEERING REPORT &middot; 144 LOC &middot; 7 BINARY ALIASES &middot; 45 ZUNIT @TEST CASES &middot; 21 STRUCTURAL GATES &middot; LIVE PYPI SEARCH WITH VERSION+DESC &middot; MENKETECHNOLOGIES
+      ZSH-PIP-DESCRIPTION-COMPLETION ENGINEERING REPORT &middot; 212 LOC &middot; 7 BINARY ALIASES &middot; 45 ZUNIT @TEST CASES &middot; 21 STRUCTURAL GATES &middot; LIVE PYPI SEARCH WITH VERSION+DESC &middot; MENKETECHNOLOGIES
     </footer>
   </div>
 

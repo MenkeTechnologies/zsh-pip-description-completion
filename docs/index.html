@@ -71,6 +71,12 @@
       <p class="tutorial-subtitle"><strong><code>pip install &lt;TAB&gt;</code> with version + description.</strong> All functionality of the OMZ pip completion plus a live <code>pip search</code>-backed completer for <code>pip install</code>. The descriptions in the zsh menu show the package version and short description.</p>
 
       <section class="tutorial-section">
+        <h2>Overview</h2>
+        <p>This is a <code>#compdef</code> completion plugin for the <code>pip</code> command. It carries the full subcommand and flag surface of the Oh My Zsh pip completion, and adds a live remote completer: when you tab-complete a package argument to <code>pip install</code> (or <code>pip search</code>), it shells out to <code>pip search $PREFIX</code>, parses the result, and feeds zsh's <code>_describe</code> a map whose description is the package <strong>version + short description</strong>. The completion menu then shows the version and a one-line summary next to each candidate.</p>
+        <p>One <code>#compdef</code> line registers the completer against <strong>seven pip binary aliases</strong> &mdash; <code>pip</code>, <code>pip2</code>, <code>pip-2.7</code>, <code>pip3</code>, <code>pip-3.2</code>, <code>pip-3.3</code>, <code>pip-3.4</code>. A separate cache layer (<code>zsh-pip-cache-packages</code>) downloads the PyPI simple index (<code>https://pypi.org/simple/</code>) once, extracts every package name, and stores the list in <code>~/.pip/zsh-cache</code> for reuse.</p>
+      </section>
+
+      <section class="tutorial-section">
         <h2>Install</h2>
 <pre># Zinit
 zinit ice lucid nocompile
@@ -84,14 +90,48 @@ git clone https://github.com/MenkeTechnologies/zsh-pip-description-completion \
 # Manual
 git clone https://github.com/MenkeTechnologies/zsh-pip-description-completion
 source zsh-pip-description-completion/zsh-pip-description-completion.plugin.zsh</pre>
+        <p>The entrypoint <code>zsh-pip-description-completion.plugin.zsh</code> self-locates via the <code>ZSH_ARGZERO</code> idiom, prepends <code>src/</code> to <code>fpath</code> (so <code>_pip</code> is found by compsys), appends <code>autoload/</code>, and <code>autoload -Uz</code>'s every helper in <code>autoload/</code>. No <code>compinit</code> call is made by the plugin itself &mdash; your <code>~/.zshrc</code> must run <code>compinit</code> as usual.</p>
       </section>
 
       <section class="tutorial-section">
         <h2>Examples</h2>
-<pre>pip install &lt;TAB&gt;        # live remote completion: shows version + description
-pip install requests=&lt;TAB&gt; # version completion
-pip uninstall &lt;TAB&gt;      # locally installed packages
-pip &lt;TAB&gt;                # subcommand completion</pre>
+<pre>pip &lt;TAB&gt;                # subcommand completion (install, download, freeze, ...)
+pip install &lt;TAB&gt;        # live remote completion: menu shows version + description
+pip install requests&lt;TAB&gt; # prefix-filtered remote candidates with version + desc
+pip install -r &lt;TAB&gt;     # _files: complete a requirements file path
+pip install -e &lt;TAB&gt;     # _files -/: directory-only (editable source path)
+pip uninstall &lt;TAB&gt;      # locally installed packages (from pip freeze)
+pip show &lt;TAB&gt;           # locally installed packages
+pip search &lt;TAB&gt;         # live remote search candidates</pre>
+        <p>For <code>pip install</code>, when no remote candidate is found the completer falls back to local archive files matching <code>*.tar.gz</code> / <code>*.whl</code>.</p>
+      </section>
+
+      <section class="tutorial-section">
+        <h2>Configuration</h2>
+        <table class="example-tbl">
+          <tr><td><code>ZSH_PIP_INDEXES</code></td><td>Array of package-index URLs the cache builder downloads. Default <code>(https://pypi.org/simple/)</code>. Set it in <code>~/.zshrc</code> to use private/mirror indexes. A bogus index produces no error &mdash; it is silently skipped.</td></tr>
+          <tr><td><code>ZSH_PIP_CACHE_FILE</code></td><td>Path to the cached package-name list. Default <code>~/.pip/zsh-cache</code>. The parent directory is created on first use.</td></tr>
+        </table>
+      </section>
+
+      <section class="tutorial-section">
+        <h2>Helper commands</h2>
+        <p>The plugin autoloads four helper functions from <code>autoload/</code>:</p>
+        <table class="example-tbl">
+          <tr><td><code>zsh-pip-cache-packages</code></td><td>Builds <code>$ZSH_PIP_CACHE_FILE</code> if absent: downloads each <code>$ZSH_PIP_INDEXES</code> URL with <code>curl -L</code>, pipes through <code>zsh-pip-clean-packages</code>, then <code>sort | uniq</code> into a single space-separated line. Prints <code>(...caching package index...)</code> while it runs.</td></tr>
+          <tr><td><code>zsh-pip-clean-packages</code></td><td>A one-line <code>sed</code> filter that extracts package names from PyPI HTML <code>&lt;a href&gt;</code> anchors. Reads stdin, writes one name per line.</td></tr>
+          <tr><td><code>zsh-pip-clear-cache</code></td><td>Removes <code>$ZSH_PIP_CACHE_FILE</code> and <code>unset</code>s the in-shell <code>piplist</code> array so the next completion rebuilds the cache. Run this when PyPI's index has changed.</td></tr>
+          <tr><td><code>zsh-pip-test-clean-packages</code></td><td>Self-test for the <code>sed</code> extractor: feeds two known PyPI HTML fixtures (simple index + djangopypi2 form) through <code>zsh-pip-clean-packages</code> and reports whether the regex still matches.</td></tr>
+        </table>
+      </section>
+
+      <section class="tutorial-section">
+        <h2>Troubleshooting</h2>
+        <ul>
+          <li><strong>No remote candidates appear.</strong> The live completer shells out to <code>pip search</code>; if your pip build returns no search output, <code>__pip_search</code> yields nothing and (for <code>pip install</code>) falls back to local <code>*.tar.gz</code> / <code>*.whl</code> file completion.</li>
+          <li><strong>Stale cache.</strong> Run <code>zsh-pip-clear-cache</code> to delete <code>~/.pip/zsh-cache</code> and force a fresh download on next tab.</li>
+          <li><strong>A custom index isn't completing.</strong> A bad URL in <code>ZSH_PIP_INDEXES</code> is skipped without an error message &mdash; double-check the URL.</li>
+        </ul>
       </section>
 
       <section class="tutorial-section">
