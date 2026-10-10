@@ -73,7 +73,7 @@
       <section class="tutorial-section">
         <h2>Overview</h2>
         <p>This is a <code>#compdef</code> completion plugin for the <code>pip</code> command. It carries the full subcommand and flag surface of the Oh My Zsh pip completion, and adds a live remote completer: when you tab-complete a package argument to <code>pip install</code> (or <code>pip search</code>), it shells out to <code>pip search $PREFIX</code>, parses the result, and feeds zsh's <code>_describe</code> a map whose description is the package <strong>version + short description</strong>. The completion menu then shows the version and a one-line summary next to each candidate.</p>
-        <p>One <code>#compdef</code> line registers the completer against <strong>seven pip binary aliases</strong> &mdash; <code>pip</code>, <code>pip2</code>, <code>pip-2.7</code>, <code>pip3</code>, <code>pip-3.2</code>, <code>pip-3.3</code>, <code>pip-3.4</code>. A separate cache layer (<code>zsh-pip-cache-packages</code>) downloads the PyPI simple index (<code>https://pypi.org/simple/</code>) once, extracts every package name, and stores the list in <code>~/.pip/zsh-cache</code> for reuse.</p>
+        <p>One <code>#compdef</code> line registers the completer against <strong>seven pip binary aliases</strong> &mdash; <code>pip</code>, <code>pip2</code>, <code>pip-2.7</code>, <code>pip3</code>, <code>pip-3.2</code>, <code>pip-3.3</code>, <code>pip-3.4</code>. A separate helper (<code>zsh-pip-cache-packages</code>) downloads the PyPI simple index (<code>https://pypi.org/simple/</code>), extracts every package name, and stores the list in <code>~/.pip/zsh-cache</code>. The shipped <code>_pip</code> defines the <code>__pip_all</code> function that calls it, but no completion branch invokes <code>__pip_all</code>, so the cache is populated only when it is called manually.</p>
       </section>
 
       <section class="tutorial-section">
@@ -120,7 +120,7 @@ pip search &lt;TAB&gt;         # live remote search candidates</pre>
         <table class="example-tbl">
           <tr><td><code>zsh-pip-cache-packages</code></td><td>Builds <code>$ZSH_PIP_CACHE_FILE</code> if absent: downloads each <code>$ZSH_PIP_INDEXES</code> URL with <code>curl -L</code>, pipes through <code>zsh-pip-clean-packages</code>, then <code>sort | uniq</code> into a single space-separated line. Prints <code>(...caching package index...)</code> while it runs.</td></tr>
           <tr><td><code>zsh-pip-clean-packages</code></td><td>A one-line <code>sed</code> filter that extracts package names from PyPI HTML <code>&lt;a href&gt;</code> anchors. Reads stdin, writes one name per line.</td></tr>
-          <tr><td><code>zsh-pip-clear-cache</code></td><td>Removes <code>$ZSH_PIP_CACHE_FILE</code> and <code>unset</code>s the in-shell <code>piplist</code> array so the next completion rebuilds the cache. Run this when PyPI's index has changed.</td></tr>
+          <tr><td><code>zsh-pip-clear-cache</code></td><td>Removes <code>$ZSH_PIP_CACHE_FILE</code> and <code>unset</code>s the in-shell <code>piplist</code> array so the next <code>zsh-pip-cache-packages</code> run rebuilds the cache. Run this when PyPI's index has changed.</td></tr>
           <tr><td><code>zsh-pip-test-clean-packages</code></td><td>Self-test for the <code>sed</code> extractor: feeds two known PyPI HTML fixtures (simple index + djangopypi2 form) through <code>zsh-pip-clean-packages</code> and reports whether the regex still matches.</td></tr>
         </table>
       </section>
@@ -142,15 +142,15 @@ pip search &lt;TAB&gt;         # live remote search candidates</pre>
           <li><a href="https://github.com/MenkeTechnologies/zsh-cargo-completion">zsh-cargo-completion</a> &mdash; live <code>cargo add</code> / <code>cargo install</code> completion</li>
           <li><a href="https://github.com/MenkeTechnologies/zsh-cpan-completion">zsh-cpan-completion</a> &mdash; live MetaCPAN <code>cpan</code> / <code>cpanm</code> completion</li>
           <li><a href="https://github.com/MenkeTechnologies/zsh-dotnet-completion">zsh-dotnet-completion</a> &mdash; dotnet CLI completion</li>
-          <li><a href="https://github.com/MenkeTechnologies/zsh-expand">zsh-expand</a> &mdash; spacebar expansion (11,688 tests)</li>
+          <li><a href="https://github.com/MenkeTechnologies/zsh-expand">zsh-expand</a> &mdash; spacebar alias expansion</li>
           <li><a href="https://github.com/MenkeTechnologies/zsh-gem-completion">zsh-gem-completion</a> &mdash; ruby <code>gem install</code> remote completion</li>
-          <li><a href="https://github.com/MenkeTechnologies/zsh-git-acp">zsh-git-acp</a> &mdash; 159 git aliases + add/commit/push keybindings</li>
+          <li><a href="https://github.com/MenkeTechnologies/zsh-git-acp">zsh-git-acp</a> &mdash; git aliases + add/commit/push keybindings</li>
           <li><a href="https://github.com/MenkeTechnologies/zsh-git-repo-cache">zsh-git-repo-cache</a> &mdash; index every git repo on disk</li>
           <li><a href="https://github.com/MenkeTechnologies/zsh-learn">zsh-learn</a> &mdash; MySQL-backed learning collection / quiz</li>
-          <li><a href="https://github.com/MenkeTechnologies/zsh-more-completions">zsh-more-completions</a> &mdash; 47,393-file mega completion corpus</li>
+          <li><a href="https://github.com/MenkeTechnologies/zsh-more-completions">zsh-more-completions</a> &mdash; mega completion corpus</li>
           <li><a href="https://github.com/MenkeTechnologies/zsh-nginx">zsh-nginx</a> &mdash; nginx commands + service-wrapper aliases</li>
           <li><a href="https://github.com/MenkeTechnologies/zsh-sed-sub">zsh-sed-sub</a> &mdash; in-place sed substitution on the command line</li>
-          <li><a href="https://github.com/MenkeTechnologies/zsh-sudo">zsh-sudo</a> &mdash; ESC ESC to prepend sudo</li>
+          <li><a href="https://github.com/MenkeTechnologies/zsh-sudo">zsh-sudo</a> &mdash; toggle sudo on the command line</li>
           <li><a href="https://github.com/MenkeTechnologies/zsh-xcode-completions">zsh-xcode-completions</a> &mdash; xcodebuild / xcrun / swift completion</li>
         </ul>
       </section>

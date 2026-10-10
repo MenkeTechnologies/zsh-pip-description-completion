@@ -79,7 +79,7 @@
       <!-- SECTION 1: EXECUTIVE SUMMARY           -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">&gt;_</span>EXECUTIVE SUMMARY</h2>
-      <p class="tutorial-subtitle">zsh-pip-description-completion is a <code>#compdef</code> completion plugin that registers against <strong>seven pip-binary aliases</strong> (<code>pip</code>, <code>pip2</code>, <code>pip-2.7</code>, <code>pip3</code>, <code>pip-3.2</code>, <code>pip-3.3</code>, <code>pip-3.4</code>) in a single declaration. It ships the full pip 8 subcommand surface (13 subcommands &mdash; <code>install</code>, <code>download</code>, <code>uninstall</code>, <code>freeze</code>, <code>list</code>, <code>show</code>, <code>search</code>, <code>wheel</code>, <code>hash</code>, <code>help</code>, plus deprecated <code>bundle</code>/<code>unzip</code>/<code>zip</code>) with hand-curated descriptions, full top-level flag coverage (proxy, retries, timeout, exists-action, cache-dir, trusted-host, cert, client-cert, etc.), and <strong>menu-inline version + description rendering</strong> &mdash; the killer feature. <code>pip install &lt;TAB&gt;</code> shells out to <code>pip search $PREFIX</code>, parses the 4-column output (<code>name version_paren - desc</code>), and feeds zsh's <code>_describe</code> a tag&rarr;description map where the description is <code>"$version $desc"</code>. The user sees <strong>which version is current and what the package does</strong> in the completion menu before pressing Enter. A separate PyPI HTML-index cache layer (<code>zsh-pip-cache-packages</code>) curls <code>https://pypi.org/simple/</code> and stores the parsed package name set in <code>~/.pip/zsh-cache</code> for offline use. <code>zsh-pip-clear-cache</code> autoload rotates the cache when PyPI's index changes.</p>
+      <p class="tutorial-subtitle">zsh-pip-description-completion is a <code>#compdef</code> completion plugin that registers against <strong>seven pip-binary aliases</strong> (<code>pip</code>, <code>pip2</code>, <code>pip-2.7</code>, <code>pip3</code>, <code>pip-3.2</code>, <code>pip-3.3</code>, <code>pip-3.4</code>) in a single declaration. It ships the full pip 8 subcommand surface (13 subcommands &mdash; <code>install</code>, <code>download</code>, <code>uninstall</code>, <code>freeze</code>, <code>list</code>, <code>show</code>, <code>search</code>, <code>wheel</code>, <code>hash</code>, <code>help</code>, plus deprecated <code>bundle</code>/<code>unzip</code>/<code>zip</code>) with hand-curated descriptions, full top-level flag coverage (proxy, retries, timeout, exists-action, cache-dir, trusted-host, cert, client-cert, etc.), and <strong>menu-inline version + description rendering</strong> &mdash; the feature the plugin is named for. <code>pip install &lt;TAB&gt;</code> shells out to <code>pip search $PREFIX</code>, parses the 4-column output (<code>name version_paren - desc</code>), and feeds zsh's <code>_describe</code> a tag&rarr;description map where the description is <code>"$version $desc"</code>. The user sees <strong>which version is current and what the package does</strong> in the completion menu before pressing Enter. A separate PyPI HTML-index cache helper (<code>zsh-pip-cache-packages</code>) curls <code>https://pypi.org/simple/</code> and stores the parsed package name set in <code>~/.pip/zsh-cache</code>; it is reached only through <code>__pip_all</code>, which no completion branch in <code>_pip</code> currently calls. <code>zsh-pip-clear-cache</code> removes the cache file.</p>
 
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-val">212</div><div class="stat-label">Total LOC (src + autoload + plugin)</div></div>
@@ -108,7 +108,7 @@
         </thead>
         <tbody>
           <tr><td>src/_pip</td><td class="num">121</td><td><code>#compdef pip pip2 pip-2.7 pip3 pip-3.2 pip-3.3 pip-3.4</code> &mdash; 7 binaries, one declaration; 13-entry <code>_1st_arguments</code> subcommand table; top-level flags (<code>--proxy</code>, <code>--timeout</code>, <code>--retries</code>, <code>--cache-dir</code>, etc.); per-subcommand <code>case</code> dispatch for <code>search</code>/<code>install</code>/<code>freeze</code>/<code>uninstall</code>/<code>show</code></td></tr>
-          <tr><td>autoload/zsh-pip-cache-packages</td><td class="num">19</td><td>Cache builder &mdash; curls <code>$ZSH_PIP_INDEXES</code> (default <code>https://pypi.org/simple/</code>), pipes through <code>zsh-pip-clean-packages</code> (sed name extraction from PyPI HTML anchors), <code>sort -u</code>, writes space-separated names to <code>$ZSH_PIP_CACHE_FILE</code> (default <code>~/.pip/zsh-cache</code>)</td></tr>
+          <tr><td>autoload/zsh-pip-cache-packages</td><td class="num">21</td><td>Cache builder &mdash; curls <code>$ZSH_PIP_INDEXES</code> (default <code>https://pypi.org/simple/</code>), pipes through <code>zsh-pip-clean-packages</code> (sed name extraction from PyPI HTML anchors), <code>sort | uniq</code>, writes space-separated names to <code>$ZSH_PIP_CACHE_FILE</code> (default <code>~/.pip/zsh-cache</code>)</td></tr>
           <tr><td>autoload/zsh-pip-clean-packages</td><td class="num">4</td><td><code>sed -n '/&lt;a href/ s/.*&gt;\([^&lt;]\{1,\}\).*/\1/p'</code> &mdash; one-line PyPI HTML-anchor &rarr; package-name extractor</td></tr>
           <tr><td>autoload/zsh-pip-clear-cache</td><td class="num">5</td><td>Removes <code>$ZSH_PIP_CACHE_FILE</code> and unsets in-shell <code>piplist</code> array</td></tr>
           <tr><td>autoload/zsh-pip-test-clean-packages</td><td class="num">38</td><td>Self-test for the sed extractor against two frozen PyPI HTML fixtures (simple index + djangopypi2 form); reports whether each form still parses</td></tr>
@@ -163,8 +163,8 @@
           </ul>
         </div>
         <div class="feature-card">
-          <h4>HTML-index cache (offline)</h4>
-          <p><code>__pip_all</code> &rarr; <code>zsh-pip-cache-packages</code> &rarr; <code>curl https://pypi.org/simple/</code> &rarr; <code>sed</code> name extraction &rarr; <code>sort -u</code> &rarr; <code>~/.pip/zsh-cache</code>. Cached on first use; cleared with <code>zsh-pip-clear-cache</code>. Means offline tab completion works after one online warm-up.</p>
+          <h4>HTML-index cache helper</h4>
+          <p><code>__pip_all</code> &rarr; <code>zsh-pip-cache-packages</code> &rarr; <code>curl https://pypi.org/simple/</code> &rarr; <code>sed</code> name extraction &rarr; <code>sort | uniq</code> &rarr; <code>~/.pip/zsh-cache</code>. Cleared with <code>zsh-pip-clear-cache</code>. <code>__pip_all</code> is defined in <code>_pip</code> but not called by any completion branch, so this path runs only when invoked manually.</p>
         </div>
       </div>
 
@@ -185,12 +185,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td>tests/t-plugin.zsh</td><td class="num">23</td><td>Plugin-entrypoint surface &mdash; <code>ZSH_PIP_CACHE_FILE</code> + <code>ZSH_PIP_INDEXES</code> defaults pinned; <code>fpath</code> contains both <code>src/</code> and <code>autoload/</code>; all 4 autoload helpers autoloaded via <code>autoload -Uz</code>; <code>_pip</code> file present with multi-binary <code>#compdef</code> line</td></tr>
-          <tr><td>tests/t-contract.zsh</td><td class="num">3</td><td>Entrypoint stem matches plugin-dir basename; <code>#compdef</code> declaration covers all 7 pip aliases</td></tr>
-          <tr><td>tests/t-contract2.zsh</td><td class="num">6</td><td><code>ZSH_ARGZERO</code> self-locate idiom intact; <code>fpath</code> manipulation order (<code>src/</code> first, <code>autoload/</code> appended)</td></tr>
-          <tr><td>tests/t-contract3.zsh</td><td class="num">5</td><td>Helper-function shape &mdash; <code>__pip_search</code> uses prefix-keyed cache name <code>pip_${PREFIX}_cache</code>; <code>__pip_installed</code> calls <code>pip freeze | cut -d '=' -f 1</code>; <code>__pip_all</code> guards on <code>$+piplist</code></td></tr>
-          <tr><td>tests/t-contract4.zsh</td><td class="num">5</td><td>Autoload contract &mdash; every <code>autoload/</code> helper has a self-invoking last line (<code>fn-name "$@"</code>); <code>zsh-pip-clean-packages</code> sed regex matches PyPI HTML anchor format</td></tr>
-          <tr><td>tests/t-syntax.zsh</td><td class="num">3</td><td><code>zsh -n</code> parse-cleanness on entrypoint, <code>src/_pip</code>, and every <code>autoload/</code> helper</td></tr>
+          <tr><td>tests/t-plugin.zsh</td><td class="num">23</td><td>Plugin-entrypoint surface &mdash; <code>ZSH_PIP_CACHE_FILE</code> + <code>ZSH_PIP_INDEXES</code> defaults; <code>fpath</code> entries for <code>src/</code> and <code>autoload/</code>; <code>_pip</code> <code>#compdef</code> and <code>#autoload</code> lines; <code>__pip_all</code> / <code>__pip_installed</code> / <code>__pip_search</code> definitions; <code>zsh-pip-clean-packages</code> extraction against PyPI and djangopypi2 index shapes; cache builder (curl, <code>sort | uniq</code>, single-line output, <code>mkdir -p</code>); clear-cache; self-test fixture; autoload self-invocation; clean source in a subshell</td></tr>
+          <tr><td>tests/t-contract.zsh</td><td class="num">3</td><td>Entrypoint stem matches plugin-dir basename; entrypoint parses under <code>zsh -n</code>; every completion file starts with <code>#compdef</code></td></tr>
+          <tr><td>tests/t-contract2.zsh</td><td class="num">6</td><td>Runtime values of <code>ZSH_PIP_CACHE_FILE</code> and <code>ZSH_PIP_INDEXES</code>; <code>_1st_arguments</code> subcommands; <code>__pip_search</code> name:version + description format and <code>pip search $PREFIX</code> call; <code>ZSH_PIP_INDEXES</code> override</td></tr>
+          <tr><td>tests/t-contract3.zsh</td><td class="num">5</td><td><code>_pip</code> <code>#autoload</code> on line 2; cache builder uses <code>${VAR:h}</code> and removes <code>/tmp/zsh_tmp_cache</code>; clear-cache unsets <code>piplist</code>; <code>_1st_arguments</code> includes install / uninstall / freeze / list</td></tr>
+          <tr><td>tests/t-contract4.zsh</td><td class="num">5</td><td>Cache builder shape &mdash; creates the parent directory first; skips rebuild when the cache file exists; pipes curl output through <code>zsh-pip-clean-packages</code> into the temp file; <code>sort | uniq | tr</code> normalization; <code>zsh-pip-clean-packages</code> sed filter</td></tr>
+          <tr><td>tests/t-syntax.zsh</td><td class="num">3</td><td><code>zsh -n</code> parse-cleanness on entrypoint, <code>src/*</code>, and <code>autoload/*</code></td></tr>
           <tr class="total-row"><td>Total</td><td class="num">45</td><td>6 zunit files</td></tr>
         </tbody>
       </table>
@@ -225,7 +225,7 @@
         </div>
         <div class="feature-card">
           <h4>Separate <code>__pip_search</code> + <code>__pip_all</code> paths</h4>
-          <p><code>__pip_search</code> is for <code>pip install &lt;prefix&gt;</code> (live search, per-prefix cached). <code>__pip_all</code> is for contexts that need the entire PyPI corpus (autocompleting a bare <code>pip install &lt;TAB&gt;</code> with no prefix yet). Two code paths because the cost profiles differ &mdash; <code>__pip_search</code> is a network call per prefix, <code>__pip_all</code> is a one-time HTML-index download.</p>
+          <p><code>__pip_search</code> is for <code>pip install &lt;prefix&gt;</code> (live search, per-prefix cached). <code>__pip_all</code> loads the whole PyPI name list from the HTML-index cache into <code>$piplist</code>; it is defined but no branch of <code>_pip</code> calls it. The cost profiles differ &mdash; <code>__pip_search</code> is a network call per prefix, <code>__pip_all</code> is a one-time HTML-index download.</p>
         </div>
       </div>
 
@@ -235,7 +235,7 @@
       <!-- SECTION 6: DATA FLOW                    -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">&gt;</span>DATA FLOW &middot; WHAT HAPPENS ON &lt;TAB&gt;</h2>
-      <p class="tutorial-subtitle">Two distinct paths fire depending on the context: the live per-prefix search path, and the one-time HTML-index cache path.</p>
+      <p class="tutorial-subtitle">Two distinct paths fire depending on the context: the live per-prefix search path, and the manually invoked HTML-index cache path.</p>
 
       <div class="feature-grid">
         <div class="feature-card">
@@ -249,7 +249,7 @@
           </ul>
         </div>
         <div class="feature-card">
-          <h4>HTML-index cache path (<code>__pip_all</code>)</h4>
+          <h4>HTML-index cache path (<code>__pip_all</code>, not called by <code>_pip</code>)</h4>
           <ul>
             <li><code>__pip_all</code> guards on <code>$+piplist</code>; if unset, calls <code>zsh-pip-cache-packages</code>.</li>
             <li><code>zsh-pip-cache-packages</code>: if <code>$ZSH_PIP_CACHE_FILE</code> is absent, <code>curl -L</code> each <code>$ZSH_PIP_INDEXES</code> URL into a temp file.</li>
