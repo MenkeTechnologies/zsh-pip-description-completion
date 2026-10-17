@@ -19,6 +19,13 @@
 This plugin has all functionality of OMZ pip completion but it also allows `pip install <tab>` to complete remote pip packages from output of `pip search`.
 The descriptions in the zsh menu completions are the version number and description.
 
+Package names for `pip install <tab>` are read from a cache file built from the indexes in `ZSH_PIP_INDEXES` (default `https://pypi.org/simple/`). The plugin assigns both on load, so override them after it is sourced:
+
+- `ZSH_PIP_INDEXES` - array of simple-index URLs
+- `ZSH_PIP_CACHE_FILE` - cache path (default `~/.pip/zsh-cache`)
+
+Run `zsh-pip-clear-cache` to delete the cache so it is rebuilt on next use.
+
 ### [`strykelang`](https://github.com/MenkeTechnologies/strykelang) &middot; [`zshrs`](https://github.com/MenkeTechnologies/zshrs) · [`MenkeTechnologiesMeta`](https://github.com/MenkeTechnologies/MenkeTechnologiesMeta) · [`zsh-cargo-completion`](https://github.com/MenkeTechnologies/zsh-cargo-completion) · [`zsh-gem-completion`](https://github.com/MenkeTechnologies/zsh-gem-completion) · [`zsh-more-completions`](https://github.com/MenkeTechnologies/zsh-more-completions) · [`zpwr`](https://github.com/MenkeTechnologies/zpwr)
 
 ### [`Read the Docs`](https://menketechnologies.github.io/zsh-pip-description-completion/) &middot; [`Engineering Report`](https://menketechnologies.github.io/zsh-pip-description-completion/report.html)
